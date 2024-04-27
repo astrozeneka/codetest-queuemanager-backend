@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from datetime import datetime
 
 
 class QueueDataManager:
@@ -74,7 +75,7 @@ class QueueDataManager:
 
         # Insert in the database
         cursor = self.connection.cursor()
-        queue['create_date'] = 'now'
+        queue['create_date'] = datetime.now()
         queue['ip'] = ''
         queue['call_id'] = next_id
         queue['warehouse'] = ''
@@ -88,4 +89,11 @@ class QueueDataManager:
         self.connection.commit()
         return cursor.lastrowid
 
-
+    def processQueue(self, id, warehouse):
+        # Get the queue
+        queue = self.getOne(id)
+        queue['enter_time'] = 'now'
+        queue['warehouse'] = warehouse
+        self.update(queue)
+        queue = self.getOne(id)
+        return queue

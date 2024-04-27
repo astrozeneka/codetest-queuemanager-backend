@@ -19,17 +19,22 @@ app.add_middleware(
 queueDataManager = QueueDataManager(None)
 
 # Websocket connection reference
-websocket_connection = None
+websocket_connection = {
+    '10-wheels': None,
+    '6-wheels': None,
+    'pickup': None,
+    'central': None
+}
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+@app.websocket("/ws/{endpoint}")
+async def websocket_endpoint(websocket: WebSocket, endpoint: str):
     global websocket_connection
     await websocket.accept()
-    websocket_connection = websocket
+    websocket_connection[endpoint] = websocket
     while True:
         data = await websocket.receive_text()
         await websocket.send_text(f"Message text was: {data}")
@@ -43,15 +48,35 @@ async def test_send_socket():
     else:
         return JSONResponse(content={"status": "error", "message": "No websocket connection"})
 
+
+@app.get("/notify-refresh/{endpoint}")
+async def notify_refresh(endpoint: str):
+    global websocket_connection
+    if websocket_connection[endpoint]:
+        await websocket_connection[endpoint].send_text("refresh")
+        return JSONResponse(content={"status": "success"})
+    else:
+        return JSONResponse(content={"status": "error", "message": "No websocket connection"})
+
 @app.post("/request-queue")
 async def request_queue(
         queue:dict
 ):
     id = queueDataManager.insert(queue)
     queue = queueDataManager.getOne(id)
+    category = queue['category']
+    # Notify officers and send refreshed data
+    refreshed_queue = queueDataManager.getCollectionByCategory(category)
+    if websocket_connection[category]:
+        await websocket_connection[category].send_json(refreshed_queue)
     return JSONResponse(content=queue)
 
 @app.get('/category/{category}/queue')
 async def get_queue_by_category(category):
     queue = queueDataManager.getCollectionByCategory(category)
+    return JSONResponse(content=queue)
+
+@app.get('/warehouse/{warehouse}/queue/{id}')
+async def get_queue_by_id(warehouse, id):
+    queue = queueDataManager.getOne(id)
     return JSONResponse(content=queue)
