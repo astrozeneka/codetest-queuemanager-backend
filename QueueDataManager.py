@@ -97,3 +97,31 @@ class QueueDataManager:
         self.update(queue)
         queue = self.getOne(id)
         return queue
+
+    def update(self, queue):
+        self.connection = sqlite3.connect(os.getenv('DB_PATH') or 'db.sqlite3')
+        cursor = self.connection.cursor()
+        queue = (queue['create_date'], queue['ip'], queue['call_id'], queue['category'], queue['warehouse'], queue['enter_time'], queue['exit_time'], queue['id'])
+        cursor.execute("UPDATE queue SET create_date=?, ip=?, call_id=?, category=?, warehouse=?, enter_time=?, exit_time=? WHERE id=?", queue)
+        self.connection.commit()
+        return cursor.lastrowid
+
+    def getCalledQueue(self):
+        # All queue that have already a enter_time
+        self.connection = sqlite3.connect(os.getenv('DB_PATH') or 'db.sqlite3')
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT * FROM queue WHERE enter_time IS NOT ''")
+        rows = cursor.fetchall()
+        output = []
+        for row in rows:
+            output.append({
+                'id': row[0],
+                'create_date': row[1],
+                'ip': row[2],
+                'call_id': row[3],
+                'category': row[4],
+                'warehouse': row[5],
+                'enter_time': row[6],
+                'exit_time': row[7]
+            })
+        return output

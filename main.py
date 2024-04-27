@@ -1,3 +1,4 @@
+from datetime import datetime
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -79,4 +80,17 @@ async def get_queue_by_category(category):
 @app.get('/warehouse/{warehouse}/queue/{id}')
 async def get_queue_by_id(warehouse, id):
     queue = queueDataManager.getOne(id)
+    queue['warehouse'] = warehouse
+    queue['enter_time'] = datetime.now()
+    queueDataManager.update(queue)
+    queue = queueDataManager.getOne(id)
+
+    # Notify the 'central' to refresh the queue and append the lastly appended item
+    data = {
+        'category': queue['category'],
+        'entityList': queueDataManager.getCalledQueue(),
+        'lastQueue': queue
+    }
+    if websocket_connection['central']:
+        await websocket_connection['central'].send_json(data)
     return JSONResponse(content=queue)
