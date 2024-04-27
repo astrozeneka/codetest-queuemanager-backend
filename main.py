@@ -51,3 +51,7 @@ async def request_queue(
     queue = queueDataManager.getOne(id)
     return JSONResponse(content=queue)
 
+@app.get('/category/{category}/queue')
+async def get_queue_by_category(category):
+    queue = queueDataManager.getCollectionByCategory(category)
+    return JSONResponse(content=queue)
