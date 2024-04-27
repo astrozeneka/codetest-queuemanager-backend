@@ -3,6 +3,8 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from QueueDataManager import QueueDataManager
+
 app = FastAPI()
 # CORS
 app.add_middleware(
@@ -12,6 +14,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# DATA MANAGERS
+queueDataManager = QueueDataManager(None)
 
 # Websocket connection reference
 websocket_connection = None
@@ -37,3 +42,12 @@ async def test_send_socket():
         return JSONResponse(content={"status": "success"})
     else:
         return JSONResponse(content={"status": "error", "message": "No websocket connection"})
+
+@app.post("/request-queue")
+async def request_queue(
+        queue:dict
+):
+    id = queueDataManager.insert(queue)
+    queue = queueDataManager.getOne(id)
+    return JSONResponse(content=queue)
+
