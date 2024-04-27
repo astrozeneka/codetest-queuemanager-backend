@@ -67,14 +67,14 @@ async def request_queue(
     queue = queueDataManager.getOne(id)
     category = queue['category']
     # Notify officers and send refreshed data
-    refreshed_queue = queueDataManager.getCollectionByCategory(category)
+    refreshed_queue = queueDataManager.getAwaitingCollectionByCategory(category)
     if websocket_connection[category]:
         await websocket_connection[category].send_json(refreshed_queue)
     return JSONResponse(content=queue)
 
 @app.get('/category/{category}/queue')
 async def get_queue_by_category(category):
-    queue = queueDataManager.getCollectionByCategory(category)
+    queue = queueDataManager.getAwaitingCollectionByCategory(category)
     return JSONResponse(content=queue)
 
 @app.get('/warehouse/{warehouse}/queue/{id}')
@@ -93,4 +93,12 @@ async def get_queue_by_id(warehouse, id):
     }
     if websocket_connection['central']:
         await websocket_connection['central'].send_json(data)
+    return JSONResponse(content=queue)
+
+@app.post('/queue/{id}/finish')
+async def finish_queue(id):
+    queue = queueDataManager.getOne(id)
+    queue['exit_time'] = datetime.now()
+    queueDataManager.update(queue)
+    queue = queueDataManager.getOne(id)
     return JSONResponse(content=queue)

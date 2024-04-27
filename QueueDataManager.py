@@ -44,6 +44,25 @@ class QueueDataManager:
             })
         return output
 
+    def getAwaitingCollectionByCategory(self, category):
+        self.connection = sqlite3.connect(os.getenv('DB_PATH') or 'db.sqlite3')
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT * FROM queue WHERE category=? AND enter_time IS ''", (category,))
+        rows = cursor.fetchall()
+        output = []
+        for row in rows:
+            output.append({
+                'id': row[0],
+                'create_date': row[1],
+                'ip': row[2],
+                'call_id': row[3],
+                'category': row[4],
+                'warehouse': row[5],
+                'enter_time': row[6],
+                'exit_time': row[7]
+            })
+        return output
+
     def getOne(self, id):
         self.connection = sqlite3.connect(os.getenv('DB_PATH') or 'db.sqlite3')
         cursor = self.connection.cursor()
@@ -110,7 +129,7 @@ class QueueDataManager:
         # All queue that have already a enter_time
         self.connection = sqlite3.connect(os.getenv('DB_PATH') or 'db.sqlite3')
         cursor = self.connection.cursor()
-        cursor.execute("SELECT * FROM queue WHERE enter_time IS NOT ''")
+        cursor.execute("SELECT * FROM queue WHERE enter_time IS NOT '' ORDER BY id DESC LIMIT 10")
         rows = cursor.fetchall()
         output = []
         for row in rows:
