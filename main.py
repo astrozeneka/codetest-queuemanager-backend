@@ -1,10 +1,12 @@
 from datetime import datetime
 
+import fastapi.responses
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
+from fastapi.responses import PlainTextResponse, Response, FileResponse
 from QueueDataManager import QueueDataManager
+from statistics import plotQueue
 
 app = FastAPI()
 # CORS
@@ -94,7 +96,7 @@ async def get_queue_by_id(warehouse, id):
     }
     if websocket_connection['central']:
         await websocket_connection['central'].send_json(data)
-    # Notify the siblings
+    # Notify the siblings, TODO: should need to fix
     if websocket_connection[queue['category']]:
         await websocket_connection[queue['category']].send_json(data)
     return JSONResponse(content=queue)
@@ -106,3 +108,11 @@ async def finish_queue(id):
     queueDataManager.update(queue)
     queue = queueDataManager.getOne(id)
     return JSONResponse(content=queue)
+
+@app.get('/export/pdf')
+async def export_pdf(
+        response_class=FileResponse
+):
+    pdffile = plotQueue()
+    return FileResponse(pdffile)
+
