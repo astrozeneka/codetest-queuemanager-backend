@@ -70,6 +70,7 @@ async def request_queue(
     refreshed_queue = queueDataManager.getAwaitingCollectionByCategory(category)
     if websocket_connection[category]:
         await websocket_connection[category].send_json(refreshed_queue)
+
     return JSONResponse(content=queue)
 
 @app.get('/category/{category}/queue')
@@ -88,11 +89,14 @@ async def get_queue_by_id(warehouse, id):
     # Notify the 'central' to refresh the queue and append the lastly appended item
     data = {
         'category': queue['category'],
-        'entityList': queueDataManager.getCalledQueue(),
+        'entityList': queueDataManager.getCalledQueueByCategory(queue['category']),
         'lastQueue': queue
     }
     if websocket_connection['central']:
         await websocket_connection['central'].send_json(data)
+    # Notify the siblings
+    if websocket_connection[queue['category']]:
+        await websocket_connection[queue['category']].send_json(data)
     return JSONResponse(content=queue)
 
 @app.post('/queue/{id}/finish')
